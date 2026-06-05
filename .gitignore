@@ -223,6 +223,7 @@ test/
 # PyTorch
 checkpoints/
 logs/
+reports/
 
 # venv
 Lib/

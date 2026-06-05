@@ -73,7 +73,10 @@ $env:UV_CACHE_DIR = ".uv-cache"
 uv run python evaluate.py --split all
 uv run python evaluate.py --checkpoint checkpoints/YOUR_CHECKPOINT.ckpt --split val
 uv run python evaluate.py --find-thresholds --split all
+uv run python evaluate.py --find-thresholds --split all --export-errors
 ```
+
+`--export-errors` copies false-positive and false-negative images under `reports/error-audit/` for manual inspection.
 
 For a quick single-image checkpoint prediction:
 

@@ -33,6 +33,8 @@ class CatPresenceModel(lightning.LightningModule):
             weights=models.efficientnet.EfficientNet_B0_Weights.IMAGENET1K_V1
         )
 
+        self.backbone.features.eval()
+
         for param in self.backbone.parameters():
             param.requires_grad = False
 
@@ -42,7 +44,7 @@ class CatPresenceModel(lightning.LightningModule):
 
         in_features = self.backbone.classifier[1].in_features
         self.backbone.classifier = nn.Sequential(
-            nn.Dropout(0.2), nn.Linear(in_features, 2)
+            nn.Dropout(0.0), nn.Linear(in_features, 2)
         )
 
         # Loss
@@ -92,4 +94,4 @@ class CatPresenceModel(lightning.LightningModule):
         if backbone_params:
             params.append({"params": backbone_params, "lr": self.backbone_lr})
 
-        return torch.optim.Adam(params)
+        return torch.optim.Adam(params, weight_decay=1e-4)

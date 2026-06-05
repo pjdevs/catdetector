@@ -1,4 +1,5 @@
 import argparse
+import shutil
 from pathlib import Path
 
 import torch
@@ -33,11 +34,12 @@ def collect_split_outputs(
     dataset_dir: Path,
     batch_size: int,
     device: str,
-) -> tuple[torch.Tensor, torch.Tensor, int]:
+) -> tuple[torch.Tensor, torch.Tensor, list[Path]]:
     dataset = CatDataset(
         dataset_dir=dataset_dir, split=split, transform=eval_transform()
     )
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    image_paths = [sample[0] for sample in dataset.samples]
 
     labels_batches = []
     prob_batches = []
@@ -48,7 +50,7 @@ def collect_split_outputs(
             labels_batches.append(labels.int())
             prob_batches.append(probs)
 
-    return torch.cat(labels_batches), torch.cat(prob_batches), len(dataset)
+    return torch.cat(labels_batches), torch.cat(prob_batches), image_paths
 
 
 def predictions_for_thresholds(
@@ -180,6 +182,38 @@ def print_split_report(
         print(f"{name:>7} " + " ".join(f"{count:7d}" for count in row))
 
 
+def export_errors(
+    export_dir: Path,
+    split: str,
+    labels: torch.Tensor,
+    probs: torch.Tensor,
+    paths: list[Path],
+    thresholds: tuple[float, float],
+) -> int:
+    preds = predictions_for_thresholds(probs, thresholds)
+    exported_count = 0
+
+    for sample_index, path in enumerate(paths):
+        for cat_index, cat_name in enumerate(CAT_NAMES):
+            actual = int(labels[sample_index, cat_index].item())
+            predicted = int(preds[sample_index, cat_index].item())
+            if actual == predicted:
+                continue
+
+            error_type = "false_positive" if predicted else "false_negative"
+            prob = probs[sample_index, cat_index].item()
+            destination_dir = export_dir / split / cat_name / error_type
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            destination = (
+                destination_dir
+                / f"prob-{prob:.3f}__threshold-{thresholds[cat_index]:.2f}__{path.name}"
+            )
+            shutil.copy2(path, destination)
+            exported_count += 1
+
+    return exported_count
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate a cat detector checkpoint.")
     parser.add_argument("--dataset-dir", type=Path, default=Path("dataset"))
@@ -194,6 +228,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--threshold-min", type=float, default=0.05)
     parser.add_argument("--threshold-max", type=float, default=0.95)
     parser.add_argument("--threshold-step", type=float, default=0.01)
+    parser.add_argument(
+        "--export-errors",
+        nargs="?",
+        const=Path("reports/error-audit"),
+        type=Path,
+        help="Copy false-positive/false-negative images to the given directory.",
+    )
     return parser.parse_args()
 
 
@@ -227,8 +268,13 @@ def main() -> None:
         print(f"threshold: {args.threshold:.2f}")
 
     splits = ("train", "val", "test") if args.split == "all" else (args.split,)
+    total_exported = 0
+    export_dir = args.export_errors
+    if export_dir:
+        export_dir = export_dir / checkpoint.stem
+
     for split in splits:
-        labels, probs, sample_count = collect_split_outputs(
+        labels, probs, paths = collect_split_outputs(
             model=model,
             split=split,
             dataset_dir=args.dataset_dir,
@@ -239,9 +285,22 @@ def main() -> None:
             split=split,
             labels=labels,
             probs=probs,
-            sample_count=sample_count,
+            sample_count=len(paths),
             thresholds=thresholds,
         )
+        if export_dir:
+            total_exported += export_errors(
+                export_dir=export_dir,
+                split=split,
+                labels=labels,
+                probs=probs,
+                paths=paths,
+                thresholds=thresholds,
+            )
+
+    if export_dir:
+        print(f"\nexported errors: {total_exported}")
+        print(f"export dir: {export_dir}")
 
 
 if __name__ == "__main__":
