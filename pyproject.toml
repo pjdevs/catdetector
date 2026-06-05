@@ -28,8 +28,8 @@ url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [tool.taskipy.tasks]
-train = "python -m catdetector.train"
-evaluate = "python -m catdetector.evaluate"
+train = "python trainer.py"
+evaluate = "python evaluate.py"
 format = "ruff format ."
 check_ruff = "ruff check ."
 check_ty = "ty check ."

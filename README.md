@@ -13,7 +13,8 @@ The model is a multi-label classifier:
 - `models.py`: PyTorch Lightning model using a pretrained EfficientNet-B0 backbone and a 2-logit classifier head.
 - `datasets.py`: CSV-backed image dataset loader for fixed `train`, `val`, and `test` splits.
 - `trainer.py`: training entry point, train/eval transforms, dataloaders, logger, and checkpoint callback.
-- `catdetector.py`: small inference/evaluation scratch script using a checkpoint and one image.
+- `evaluate.py`: checkpoint evaluation script with per-cat precision/recall/F1 and a 4-class confusion matrix.
+- `catdetector.py`: single-image inference script using the same preprocessing as evaluation.
 - `data/`: local source images grouped by human-friendly label folders.
 - `dataset/`: generated local fixed split with `labels.csv`; ignored by git.
 - `checkpoints/` and `logs/`: local training artifacts; ignored by git.
@@ -35,19 +36,32 @@ Run:
 
 ```powershell
 $env:UV_CACHE_DIR = ".uv-cache"
-uv run python trainer.py
+uv run task train
 ```
 
 ## Evaluate / Infer
+
+Evaluate the latest checkpoint on the test split:
+
+```powershell
+$env:UV_CACHE_DIR = ".uv-cache"
+uv run task evaluate
+```
+
+Useful options:
+
+```powershell
+$env:UV_CACHE_DIR = ".uv-cache"
+uv run python evaluate.py --split all
+uv run python evaluate.py --checkpoint checkpoints/YOUR_CHECKPOINT.ckpt --split val
+```
 
 For a quick single-image checkpoint prediction:
 
 ```powershell
 $env:UV_CACHE_DIR = ".uv-cache"
-uv run python catdetector.py
+uv run python catdetector.py data/oka/IMG_20260201_161155.jpg
 ```
-
-The script currently has the checkpoint path and image path hardcoded, so edit those before using it on another image.
 
 ## Test / Check
 
