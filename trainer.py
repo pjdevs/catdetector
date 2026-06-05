@@ -45,8 +45,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--max-epochs", type=int, default=50)
     parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--backbone-lr", type=float, default=1e-5)
     parser.add_argument("--patience", type=int, default=8)
     parser.add_argument("--num-workers", type=int, default=2)
+    parser.add_argument("--unfreeze-last-block", action="store_true")
     return parser.parse_args()
 
 
@@ -55,7 +57,11 @@ def main() -> None:
     torch.set_float32_matmul_precision("high")
 
     # Model
-    model = CatPresenceModel(lr=args.lr)
+    model = CatPresenceModel(
+        lr=args.lr,
+        backbone_lr=args.backbone_lr,
+        unfreeze_last_block=args.unfreeze_last_block,
+    )
 
     # Datasets
     train_dataset = CatDataset(

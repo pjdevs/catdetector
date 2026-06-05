@@ -6,11 +6,18 @@ from torchvision import models
 
 
 class CatPresenceModel(lightning.LightningModule):
-    def __init__(self, lr: float = 1e-4):
+    def __init__(
+        self,
+        lr: float = 1e-4,
+        backbone_lr: float = 1e-5,
+        unfreeze_last_block: bool = False,
+    ):
         super().__init__()
 
         # Hyperparameters
         self.save_hyperparameters()
+        self.lr = lr
+        self.backbone_lr = backbone_lr
 
         # Model
 
@@ -28,6 +35,10 @@ class CatPresenceModel(lightning.LightningModule):
 
         for param in self.backbone.parameters():
             param.requires_grad = False
+
+        if unfreeze_last_block:
+            for param in self.backbone.features[-1].parameters():
+                param.requires_grad = True
 
         in_features = self.backbone.classifier[1].in_features
         self.backbone.classifier = nn.Sequential(
@@ -70,4 +81,15 @@ class CatPresenceModel(lightning.LightningModule):
         self.log("val_acc", acc, on_step=True, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.backbone.parameters(), lr=self.hparams.lr)  # ty:ignore[unresolved-attribute]
+        classifier_params = list(self.backbone.classifier.parameters())
+        backbone_params = [
+            param
+            for name, param in self.backbone.named_parameters()
+            if param.requires_grad and not name.startswith("classifier.")
+        ]
+
+        params = [{"params": classifier_params, "lr": self.lr}]
+        if backbone_params:
+            params.append({"params": backbone_params, "lr": self.backbone_lr})
+
+        return torch.optim.Adam(params)

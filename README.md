@@ -48,6 +48,15 @@ uv run python trainer.py --max-epochs 50 --patience 8 --batch-size 16 --lr 1e-4
 
 Training keeps the pretrained EfficientNet-B0 backbone frozen and trains only the classifier head. Checkpoints and early stopping monitor `val_loss`.
 
+Optional fine-tuning experiment: unfreeze only the last EfficientNet block and keep a lower learning rate on that backbone block.
+
+On the current dataset, this was worse than the frozen-backbone baseline, so keep the frozen run as the reference until more data is added:
+
+```powershell
+$env:UV_CACHE_DIR = ".uv-cache"
+uv run python trainer.py --max-epochs 50 --patience 8 --batch-size 16 --lr 1e-4 --unfreeze-last-block --backbone-lr 1e-5
+```
+
 ## Evaluate / Infer
 
 Evaluate the latest checkpoint on the test split:
@@ -63,6 +72,7 @@ Useful options:
 $env:UV_CACHE_DIR = ".uv-cache"
 uv run python evaluate.py --split all
 uv run python evaluate.py --checkpoint checkpoints/YOUR_CHECKPOINT.ckpt --split val
+uv run python evaluate.py --find-thresholds --split all
 ```
 
 For a quick single-image checkpoint prediction:
