@@ -1,7 +1,10 @@
+import argparse
+from pathlib import Path
+
 import lightning
 import torch
 import torchvision.transforms as transforms
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 
 from datasets import CatDataset
@@ -34,44 +37,73 @@ def eval_transform():
     )
 
 
-if __name__ == "__main__":
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Train the cat detector.")
+    parser.add_argument("--dataset-dir", type=Path, default=Path("dataset"))
+    parser.add_argument("--checkpoint-dir", type=Path, default=Path("checkpoints"))
+    parser.add_argument("--log-dir", type=Path, default=Path("logs"))
+    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--max-epochs", type=int, default=50)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--patience", type=int, default=8)
+    parser.add_argument("--num-workers", type=int, default=2)
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
     torch.set_float32_matmul_precision("high")
 
     # Model
-    model = CatPresenceModel()
+    model = CatPresenceModel(lr=args.lr)
 
     # Datasets
-    train_dataset = CatDataset(split="train", transform=train_transform())
-    val_dataset = CatDataset(split="val", transform=eval_transform())
+    train_dataset = CatDataset(
+        dataset_dir=args.dataset_dir, split="train", transform=train_transform()
+    )
+    val_dataset = CatDataset(
+        dataset_dir=args.dataset_dir, split="val", transform=eval_transform()
+    )
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=16,
-        num_workers=2,
-        persistent_workers=True,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        persistent_workers=args.num_workers > 0,
         shuffle=True,
     )
     val_dataloader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size=16,
-        num_workers=2,
-        persistent_workers=True,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        persistent_workers=args.num_workers > 0,
         shuffle=False,
     )
 
     # Trainer
-    logger = TensorBoardLogger("logs", name="cats")
+    logger = TensorBoardLogger(args.log_dir, name="cats")
     checkpoint_callback = ModelCheckpoint(
-        dirpath="checkpoints",
+        dirpath=args.checkpoint_dir,
         filename="catdetector-{epoch:02d}-{val_loss:.4f}",
         save_top_k=1,
         monitor="val_loss",
         mode="min",
     )
+    early_stopping_callback = EarlyStopping(
+        monitor="val_loss",
+        mode="min",
+        patience=args.patience,
+    )
     trainer = lightning.Trainer(
-        max_epochs=25, logger=logger, callbacks=[checkpoint_callback]
+        max_epochs=args.max_epochs,
+        logger=logger,
+        callbacks=[checkpoint_callback, early_stopping_callback],
     )
 
     # Go!
     trainer.fit(
         model=model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
     )
+
+
+if __name__ == "__main__":
+    main()

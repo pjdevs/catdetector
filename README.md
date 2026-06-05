@@ -39,6 +39,15 @@ $env:UV_CACHE_DIR = ".uv-cache"
 uv run task train
 ```
 
+Baseline run with explicit settings:
+
+```powershell
+$env:UV_CACHE_DIR = ".uv-cache"
+uv run python trainer.py --max-epochs 50 --patience 8 --batch-size 16 --lr 1e-4
+```
+
+Training keeps the pretrained EfficientNet-B0 backbone frozen and trains only the classifier head. Checkpoints and early stopping monitor `val_loss`.
+
 ## Evaluate / Infer
 
 Evaluate the latest checkpoint on the test split:
