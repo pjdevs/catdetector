@@ -217,6 +217,7 @@ __marimo__/
 
 # Training data
 data/
+dataset/
 test/
 
 # PyTorch
