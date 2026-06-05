@@ -28,8 +28,8 @@ class CatDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.samples)
 
-    def __getitem__(self, idx):
-        img_path, label = self.samples[idx]
+    def __getitem__(self, index: int) -> tuple[Image.Image, torch.Tensor]:
+        img_path, label = self.samples[index]
         img = Image.open(img_path).convert("RGB")
 
         if self.transform:

@@ -14,6 +14,10 @@ dependencies = [
     "torchvision>=0.27.0",
 ]
 
+[dependency-groups]
+dev = ["ruff>=0.15.16", "taskipy>=1.14.1", "ty>=0.0.44"]
+
+
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu130" }]
 torchvision = [{ index = "pytorch-cu130" }]
@@ -22,3 +26,11 @@ torchvision = [{ index = "pytorch-cu130" }]
 name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
+
+[tool.taskipy.tasks]
+train = "python -m catdetector.train"
+evaluate = "python -m catdetector.evaluate"
+format = "ruff format ."
+check_ruff = "ruff check ."
+check_ty = "ty check ."
+check = "task check_ruff && task check_ty"

@@ -6,7 +6,9 @@ from trainer import eval_transform
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = CatPresenceModel.load_from_checkpoint("checkpoints/catdetector-epoch=23-train_loss=0.5827.ckpt").to(device)
+model = CatPresenceModel.load_from_checkpoint(
+    "checkpoints/catdetector-epoch=23-train_loss=0.5827.ckpt"
+).to(device)
 model.eval()
 
 img = Image.open("data/oka/IMG_20260201_161155.jpg").convert("RGB")
