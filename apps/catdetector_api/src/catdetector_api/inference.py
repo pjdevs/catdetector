@@ -18,8 +18,8 @@ from catdetector_api.predictions import (
     prediction_label,
 )
 
-DEFAULT_VICKIE_THRESHOLD = 0.37
-DEFAULT_OKA_THRESHOLD = 0.52
+DEFAULT_VICKIE_THRESHOLD = 0.5
+DEFAULT_OKA_THRESHOLD = 0.5
 
 
 def latest_checkpoint(checkpoints_dir: Path) -> Path:
