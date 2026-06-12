@@ -5,8 +5,8 @@ A Python 3.14 monorepo for detecting Vickie and Oka in images.
 It currently contains:
 
 - a PyTorch Lightning trainer/evaluator package;
-- a minimal FastAPI package that will later serve the phone-friendly photo test
-  webapp and model inference API.
+- a FastAPI package that serves the model inference API and the built web app;
+- a Vite/Svelte phone-friendly web app for taking or selecting a photo.
 
 The model is a multi-label classifier:
 
@@ -16,14 +16,20 @@ The model is a multi-label classifier:
 
 ## Repository Layout
 
-- `pyproject.toml`: root uv workspace and shared `task` commands.
+- `pyproject.toml`: root uv workspace for the Python apps and shared `task` commands.
 - `apps/catdetector_trainer/`: uv package for training, evaluation, and checkpoint prediction.
 - `apps/catdetector_trainer/src/catdetector_trainer/models.py`: PyTorch Lightning model using a pretrained EfficientNet-B0 backbone and a 2-logit classifier head.
 - `apps/catdetector_trainer/src/catdetector_trainer/datasets.py`: CSV-backed image dataset loader for fixed `train`, `val`, and `test` splits.
 - `apps/catdetector_trainer/src/catdetector_trainer/trainer.py`: training entry point, train/eval transforms, dataloaders, logger, and checkpoint callback.
 - `apps/catdetector_trainer/src/catdetector_trainer/evaluate.py`: checkpoint evaluation script with per-cat precision/recall/F1 and a 4-class confusion matrix.
 - `apps/catdetector_trainer/src/catdetector_trainer/catdetector.py`: single-image inference script using the same preprocessing as evaluation.
-- `apps/catdetector_api/`: uv package for the FastAPI service. For now it exposes only `GET /health`.
+- `apps/catdetector_api/`: uv package for the FastAPI service.
+- `apps/catdetector_api/src/catdetector_api/main.py`: FastAPI app factory, health route, router registration, and static frontend serving.
+- `apps/catdetector_api/src/catdetector_api/routes.py`: HTTP route handlers, including `POST /api/predictions`.
+- `apps/catdetector_api/src/catdetector_api/dependencies.py`: FastAPI dependency wiring for the mockable predictor interface.
+- `apps/catdetector_api/src/catdetector_api/predictions.py`: prediction DTOs, labels, errors, and `CatPredictor` protocol.
+- `apps/catdetector_api/src/catdetector_api/inference.py`: concrete checkpoint-backed predictor using `CatPresenceModel` and `eval_transform()`.
+- `apps/catdetector_web/`: Vite/Svelte phone web app. It is intentionally outside the uv workspace members because it is a Node package, but it still lives under `apps/`.
 - `data/`: local source images grouped by human-friendly label folders.
 - `dataset/`: generated local fixed split with `labels.csv`; ignored by git.
 - `checkpoints/` and `logs/`: local training artifacts; ignored by git.
@@ -37,10 +43,16 @@ $env:UV_CACHE_DIR = ".uv-cache"
 uv sync
 ```
 
-The root workspace installs both app packages:
+The root uv workspace installs both Python app packages:
 
 - `catdetector-trainer`
 - `catdetector-api`
+
+Install the web app dependencies from the committed npm lockfile:
+
+```powershell
+npm.cmd --prefix apps/catdetector_web ci
+```
 
 ## Train
 
@@ -145,20 +157,60 @@ $env:UV_CACHE_DIR = ".uv-cache"
 uv run catdetector-predict data/oka/IMG_20260201_161155.jpg
 ```
 
-## API
+## Phone Web App / API
 
-Run the empty FastAPI base app:
+Build the Svelte app before running FastAPI:
+
+```powershell
+npm.cmd --prefix apps/catdetector_web run build
+```
+
+The build output is written to `apps/catdetector_web/dist/` and is ignored by git.
+FastAPI serves that build at `/` when it exists.
+
+Run the FastAPI app:
 
 ```powershell
 $env:UV_CACHE_DIR = ".uv-cache"
 uv run task api
 ```
 
-It starts Uvicorn on `0.0.0.0:8000` and currently exposes:
+It starts Uvicorn on `0.0.0.0:8000`. From a phone on the same network, open:
+
+```text
+http://YOUR_PC_LAN_IP:8000/
+```
+
+The web app uses a normal file input with `accept="image/*"` and
+`capture="environment"`, so phones can open the camera or photo picker and upload
+the selected image to FastAPI.
+
+The service exposes:
 
 ```powershell
 curl http://localhost:8000/health
 ```
+
+For inference, send a multipart upload:
+
+```powershell
+curl -F "image=@data/oka/IMG_20260201_161155.jpg" http://localhost:8000/api/predictions
+```
+
+`POST /api/predictions` returns:
+
+- `label`: `vickie`, `oka`, `both`, or `none`;
+- `probabilities`: independent sigmoid probabilities for Vickie and Oka;
+- `detected`: per-cat booleans after thresholds;
+- `thresholds`: the thresholds used for the prediction.
+
+The default API thresholds are the documented calibrated values:
+
+- Vickie: `0.37`;
+- Oka: `0.52`.
+
+The API loads the latest `.ckpt` from `checkpoints/` lazily on first prediction.
+Invalid image uploads return HTTP 400. Missing checkpoints return HTTP 503.
 
 ## Test / Check
 
@@ -168,6 +220,7 @@ After code or dataset changes:
 $env:UV_CACHE_DIR = ".uv-cache"
 uv run task format
 uv run task check
+npm.cmd --prefix apps/catdetector_web run build
 ```
 
 `uv run task check` runs Ruff, ty, and the package-local unittest suites under:
