@@ -117,6 +117,7 @@ Useful options:
 $env:UV_CACHE_DIR = ".uv-cache"
 uv run python evaluate.py --split all
 uv run python evaluate.py --checkpoint checkpoints/YOUR_CHECKPOINT.ckpt --split val
+uv run python evaluate.py --split all --vickie-threshold 0.45 --oka-threshold 0.44
 uv run python evaluate.py --find-thresholds --split all
 uv run python evaluate.py --find-thresholds --split all --export-errors
 ```

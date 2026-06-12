@@ -60,6 +60,13 @@ def predictions_for_thresholds(
     return (probs >= threshold_tensor).int()
 
 
+def resolve_thresholds(args: argparse.Namespace) -> tuple[float, float]:
+    return (
+        args.vickie_threshold if args.vickie_threshold is not None else args.threshold,
+        args.oka_threshold if args.oka_threshold is not None else args.threshold,
+    )
+
+
 def cat_metrics(
     labels: torch.Tensor, preds: torch.Tensor, index: int
 ) -> tuple[float, float, float, int, int, int, int]:
@@ -224,6 +231,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--threshold", type=float, default=0.5)
+    parser.add_argument("--vickie-threshold", type=float)
+    parser.add_argument("--oka-threshold", type=float)
     parser.add_argument("--find-thresholds", action="store_true")
     parser.add_argument("--threshold-min", type=float, default=0.05)
     parser.add_argument("--threshold-max", type=float, default=0.95)
@@ -248,7 +257,7 @@ def main() -> None:
     model = CatPresenceModel.load_from_checkpoint(checkpoint).to(device)
     model.eval()
 
-    thresholds = (args.threshold, args.threshold)
+    thresholds = resolve_thresholds(args)
     if args.find_thresholds:
         labels, probs, _ = collect_split_outputs(
             model=model,
@@ -265,7 +274,13 @@ def main() -> None:
             step=args.threshold_step,
         )
     else:
-        print(f"threshold: {args.threshold:.2f}")
+        print(
+            "thresholds: "
+            + ", ".join(
+                f"{name}={threshold:.2f}"
+                for name, threshold in zip(CAT_NAMES, thresholds, strict=True)
+            )
+        )
 
     splits = ("train", "val", "test") if args.split == "all" else (args.split,)
     total_exported = 0
