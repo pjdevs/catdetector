@@ -13,7 +13,7 @@ dependencies = [
 dev = ["ruff>=0.15.16", "taskipy>=1.14.1", "ty>=0.0.44"]
 
 [tool.uv.workspace]
-members = ["apps/*"]
+members = ["apps/catdetector_api", "apps/catdetector_trainer"]
 
 [tool.uv.sources]
 catdetector-api = { workspace = true }

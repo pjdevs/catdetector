@@ -225,6 +225,10 @@ checkpoints/
 logs/
 reports/
 
+# Node / Vite frontend
+node_modules/
+apps/catdetector_web/dist/
+
 # venv
 Lib/
 Scripts/

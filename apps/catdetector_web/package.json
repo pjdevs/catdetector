@@ -1,0 +1,19 @@
+{
+  "name": "catdetector-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^25.9.3",
+    "svelte": "^5.56.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  }
+}
