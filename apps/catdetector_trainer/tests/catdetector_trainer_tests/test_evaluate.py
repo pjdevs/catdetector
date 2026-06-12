@@ -1,7 +1,7 @@
 from argparse import Namespace
 import unittest
 
-from evaluate import resolve_thresholds
+from catdetector_trainer.evaluate import resolve_thresholds
 
 
 class ResolveThresholdsTest(unittest.TestCase):

@@ -5,9 +5,9 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
-from datasets import CatDataset
-from models import CatPresenceModel
-from trainer import eval_transform
+from catdetector_trainer.datasets import CatDataset
+from catdetector_trainer.models import CatPresenceModel
+from catdetector_trainer.trainer import eval_transform
 
 
 CLASS_NAMES = ("none", "oka", "vickie", "both")

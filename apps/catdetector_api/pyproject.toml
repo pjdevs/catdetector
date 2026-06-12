@@ -1,0 +1,17 @@
+[project]
+name = "catdetector-api"
+version = "0.1.0"
+description = "FastAPI service package for Cat Detector."
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.124.0",
+    "httpx2>=0.28.1",
+    "uvicorn[standard]>=0.38.0",
+]
+
+[project.scripts]
+catdetector-api = "catdetector_api.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

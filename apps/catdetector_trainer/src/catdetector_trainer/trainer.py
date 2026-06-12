@@ -7,8 +7,8 @@ import torchvision.transforms as transforms
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from datasets import CatDataset
-from models import CatPresenceModel
+from catdetector_trainer.datasets import CatDataset
+from catdetector_trainer.models import CatPresenceModel
 
 
 def train_transform():

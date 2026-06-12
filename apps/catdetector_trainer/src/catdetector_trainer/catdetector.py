@@ -4,8 +4,8 @@ from pathlib import Path
 import torch
 from PIL import Image
 
-from models import CatPresenceModel
-from trainer import eval_transform
+from catdetector_trainer.models import CatPresenceModel
+from catdetector_trainer.trainer import eval_transform
 
 
 def latest_checkpoint(checkpoints_dir: Path) -> Path:

@@ -1,25 +1,23 @@
 [project]
 name = "catdetector"
 version = "0.1.0"
-description = "Cat Detector: A PyTorch Lightning-based image classification model for detecting Vickie and Oka in images."
+description = "Cat Detector monorepo workspace."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "efficientnet-pytorch>=0.7.1",
-    "lightning>=2.6.5",
-    "lightning-utilities>=0.15.3",
-    "pytorch-lightning>=2.6.5",
-    "tensorboard>=2.20.0",
-    "torch>=2.12.0",
-    "torchmetrics>=1.9.0",
-    "torchvision>=0.27.0",
+    "catdetector-api",
+    "catdetector-trainer",
 ]
 
 [dependency-groups]
 dev = ["ruff>=0.15.16", "taskipy>=1.14.1", "ty>=0.0.44"]
 
+[tool.uv.workspace]
+members = ["apps/*"]
 
 [tool.uv.sources]
+catdetector-api = { workspace = true }
+catdetector-trainer = { workspace = true }
 torch = [{ index = "pytorch-cu130" }]
 torchvision = [{ index = "pytorch-cu130" }]
 
@@ -29,9 +27,14 @@ url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [tool.taskipy.tasks]
-train = "python trainer.py"
-evaluate = "python evaluate.py"
+train = "catdetector-train"
+evaluate = "catdetector-evaluate"
+predict = "catdetector-predict"
+api = "catdetector-api"
+test_trainer = "python -m unittest discover -s apps/catdetector_trainer/tests -t apps/catdetector_trainer"
+test_api = "python -m unittest discover -s apps/catdetector_api/tests -t apps/catdetector_api"
+test = "task test_trainer && task test_api"
 format = "ruff format ."
 check_ruff = "ruff check ."
 check_ty = "ty check ."
-check = "task check_ruff && task check_ty"
+check = "task check_ruff && task check_ty && task test"
