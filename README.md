@@ -204,10 +204,10 @@ curl -F "image=@data/oka/IMG_20260201_161155.jpg" http://localhost:8000/api/pred
 - `detected`: per-cat booleans after thresholds;
 - `thresholds`: the thresholds used for the prediction.
 
-The default API thresholds are the documented calibrated values:
+The default API thresholds are:
 
-- Vickie: `0.37`;
-- Oka: `0.52`.
+- Vickie: `0.50`;
+- Oka: `0.50`.
 
 The API loads the latest `.ckpt` from `checkpoints/` lazily on first prediction.
 Invalid image uploads return HTTP 400. Missing checkpoints return HTTP 503.

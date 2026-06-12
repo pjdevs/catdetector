@@ -41,7 +41,7 @@ class PredictionEndpointTest(unittest.TestCase):
             label="both",
             probabilities=CatProbabilities(vickie=0.91, oka=0.88),
             detected=CatDetection(vickie=True, oka=True),
-            thresholds=CatThresholds(vickie=0.37, oka=0.52),
+            thresholds=CatThresholds(vickie=0.5, oka=0.5),
         )
         predictor = FakePredictor(prediction)
         app.dependency_overrides[get_cat_predictor] = lambda: predictor
@@ -59,7 +59,7 @@ class PredictionEndpointTest(unittest.TestCase):
                 "label": "both",
                 "probabilities": {"vickie": 0.91, "oka": 0.88},
                 "detected": {"vickie": True, "oka": True},
-                "thresholds": {"vickie": 0.37, "oka": 0.52},
+                "thresholds": {"vickie": 0.5, "oka": 0.5},
             },
         )
         self.assertEqual(predictor.images, [(b"fake image bytes", "cats.jpg")])

@@ -29,10 +29,10 @@ The success response contains:
 - `detected`: `{"vickie": bool, "oka": bool}`;
 - `thresholds`: `{"vickie": float, "oka": float}`;
 
-The default thresholds are the latest documented calibrated values:
+The default API thresholds are:
 
-- Vickie: `0.37`;
-- Oka: `0.52`.
+- Vickie: `0.50`;
+- Oka: `0.50`.
 
 Invalid images return HTTP 400. Missing checkpoints return HTTP 503.
 

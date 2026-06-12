@@ -70,8 +70,8 @@ class CheckpointInferenceTest(unittest.TestCase):
         self.assertAlmostEqual(prediction.probabilities.oka, 0.880797, places=6)
         self.assertFalse(prediction.detected.vickie)
         self.assertTrue(prediction.detected.oka)
-        self.assertEqual(prediction.thresholds.vickie, 0.37)
-        self.assertEqual(prediction.thresholds.oka, 0.52)
+        self.assertEqual(prediction.thresholds.vickie, 0.5)
+        self.assertEqual(prediction.thresholds.oka, 0.5)
 
     def test_predict_rejects_invalid_image_bytes(self):
         with tempfile.TemporaryDirectory() as temp_dir_name:
