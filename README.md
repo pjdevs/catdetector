@@ -32,7 +32,7 @@ uv sync
 
 The training code expects `dataset/labels.csv` and split folders under `dataset/`.
 
-The current fixed local dataset contains 294 images split as 198 train, 48 val,
+The current fixed local dataset contains 296 images split as 200 train, 48 val,
 and 48 test images. Each split includes examples for `vickie`, `oka`, `both`,
 and `none`.
 
