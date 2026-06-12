@@ -1,15 +1,14 @@
-from fastapi import HTTPException, status
+from functools import lru_cache
 
-from catdetector_api.predictions import CatPrediction, CatPredictor
-
-
-class UnavailableCatPredictor:
-    def predict(self, image: bytes, filename: str | None = None) -> CatPrediction:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Cat predictor is not configured.",
-        )
+from catdetector_api.predictions import CatPredictor
 
 
 def get_cat_predictor() -> CatPredictor:
-    return UnavailableCatPredictor()
+    return _get_checkpoint_cat_predictor()
+
+
+@lru_cache(maxsize=1)
+def _get_checkpoint_cat_predictor() -> CatPredictor:
+    from catdetector_api.inference import CheckpointCatPredictor
+
+    return CheckpointCatPredictor()

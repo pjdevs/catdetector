@@ -30,6 +30,14 @@ class CatPrediction:
     thresholds: CatThresholds
 
 
+class InvalidImageError(Exception):
+    pass
+
+
+class PredictorUnavailableError(Exception):
+    pass
+
+
 class CatPredictor(Protocol):
     def predict(self, image: bytes, filename: str | None = None) -> CatPrediction:
         pass

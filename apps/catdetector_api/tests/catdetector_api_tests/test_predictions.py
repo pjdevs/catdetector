@@ -7,6 +7,8 @@ from catdetector_api.predictions import (
     CatPrediction,
     CatProbabilities,
     CatThresholds,
+    InvalidImageError,
+    PredictorUnavailableError,
     prediction_label,
 )
 from fastapi.testclient import TestClient
@@ -20,6 +22,14 @@ class FakePredictor:
     def predict(self, image: bytes, filename: str | None = None) -> CatPrediction:
         self.images.append((image, filename))
         return self.prediction
+
+
+class FailingPredictor:
+    def __init__(self, error: Exception):
+        self.error = error
+
+    def predict(self, image: bytes, filename: str | None = None) -> CatPrediction:
+        raise self.error
 
 
 class PredictionEndpointTest(unittest.TestCase):
@@ -60,6 +70,34 @@ class PredictionEndpointTest(unittest.TestCase):
         response = client.post("/api/predictions")
 
         self.assertEqual(response.status_code, 422)
+
+    def test_prediction_endpoint_rejects_invalid_images(self):
+        app.dependency_overrides[get_cat_predictor] = lambda: FailingPredictor(
+            InvalidImageError("Invalid image upload.")
+        )
+        client = TestClient(app)
+
+        response = client.post(
+            "/api/predictions",
+            files={"image": ("bad.txt", b"nope", "text/plain")},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"detail": "Invalid image upload."})
+
+    def test_prediction_endpoint_reports_unavailable_predictor(self):
+        app.dependency_overrides[get_cat_predictor] = lambda: FailingPredictor(
+            PredictorUnavailableError("No checkpoint found.")
+        )
+        client = TestClient(app)
+
+        response = client.post(
+            "/api/predictions",
+            files={"image": ("cat.jpg", b"image", "image/jpeg")},
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {"detail": "No checkpoint found."})
 
 
 class PredictionLabelTest(unittest.TestCase):
