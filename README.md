@@ -32,6 +32,51 @@ uv sync
 
 The training code expects `dataset/labels.csv` and split folders under `dataset/`.
 
+The current fixed local dataset contains 294 images split as 198 train, 48 val,
+and 48 test images. Each split includes examples for `vickie`, `oka`, `both`,
+and `none`.
+
+## Current Lessons
+
+The last evaluated baseline before the latest 30-image dataset update used:
+
+- checkpoint: `checkpoints/catdetector-epoch=49-val_loss=0.5306.ckpt`;
+- fixed split size at the time: 264 images;
+- calibrated thresholds from validation: `vickie=0.37`, `oka=0.52`.
+
+With the default `0.50` thresholds, the model was too conservative on Vickie:
+test Vickie precision was high, but recall was low. The calibrated thresholds
+improved the test trade-off:
+
+- Vickie: precision `0.700`, recall `0.636`, F1 `0.667`;
+- Oka: precision `0.810`, recall `0.739`, F1 `0.773`.
+
+The main failure mode was not generic imbalance. The error audit showed that the
+hardest cases are:
+
+- `both` images where Oka is large or central and Vickie is small, dark, blurred,
+  or in the background;
+- Oka-only images with black-and-white or blurry close-up patterns that trigger a
+  false Vickie prediction;
+- Vickie-only images with ambiguous black-and-white patches that trigger a false
+  Oka prediction;
+- difficult `none` scenes containing dark textiles, blankets, furniture, or
+  shapes that look cat-like.
+
+The latest dataset update intentionally added more `both` and hard edge cases.
+After the next training run, compare against the baseline above and export errors
+again:
+
+```powershell
+$env:UV_CACHE_DIR = ".uv-cache"
+uv run python evaluate.py --find-thresholds --split all --export-errors
+```
+
+For future collection, prioritize real photos over synthetic data. Generated
+images may help for broad augmentation experiments, but they should not be added
+to validation or test splits, and they should not replace real edge cases of
+Vickie and Oka in the actual home environment.
+
 Run:
 
 ```powershell
