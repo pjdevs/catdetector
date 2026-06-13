@@ -227,7 +227,7 @@ reports/
 
 # Node / Vite frontend
 node_modules/
-apps/catdetector_web/dist/
+apps/catdetector-web/dist/
 
 # venv
 Lib/

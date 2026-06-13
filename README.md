@@ -4,6 +4,7 @@ A Python 3.14 monorepo for detecting Vickie and Oka in images.
 
 It currently contains:
 
+- a shared `catdetector-model` package for the PyTorch Lightning model, checkpoint lookup, and deterministic inference preprocessing;
 - a PyTorch Lightning trainer/evaluator package;
 - a FastAPI package that serves the model inference API and the built web app;
 - a Vite/Svelte phone-friendly web app for taking or selecting a photo.
@@ -17,19 +18,19 @@ The model is a multi-label classifier:
 ## Repository Layout
 
 - `pyproject.toml`: root uv workspace for the Python apps and shared `task` commands.
-- `apps/catdetector_trainer/`: uv package for training, evaluation, and checkpoint prediction.
-- `apps/catdetector_trainer/src/catdetector_trainer/models.py`: PyTorch Lightning model using a pretrained EfficientNet-B0 backbone and a 2-logit classifier head.
-- `apps/catdetector_trainer/src/catdetector_trainer/datasets.py`: CSV-backed image dataset loader for fixed `train`, `val`, and `test` splits.
-- `apps/catdetector_trainer/src/catdetector_trainer/trainer.py`: training entry point, train/eval transforms, dataloaders, logger, and checkpoint callback.
-- `apps/catdetector_trainer/src/catdetector_trainer/evaluate.py`: checkpoint evaluation script with per-cat precision/recall/F1 and a 4-class confusion matrix.
-- `apps/catdetector_trainer/src/catdetector_trainer/catdetector.py`: single-image inference script using the same preprocessing as evaluation.
-- `apps/catdetector_api/`: uv package for the FastAPI service.
-- `apps/catdetector_api/src/catdetector_api/main.py`: FastAPI app factory, health route, router registration, and static frontend serving.
-- `apps/catdetector_api/src/catdetector_api/routes.py`: HTTP route handlers, including `POST /api/predictions`.
-- `apps/catdetector_api/src/catdetector_api/dependencies.py`: FastAPI dependency wiring for the mockable predictor interface.
-- `apps/catdetector_api/src/catdetector_api/predictions.py`: prediction DTOs, labels, errors, and `CatPredictor` protocol.
-- `apps/catdetector_api/src/catdetector_api/inference.py`: concrete checkpoint-backed predictor using `CatPresenceModel` and `eval_transform()`.
-- `apps/catdetector_web/`: Vite/Svelte phone web app. It is intentionally outside the uv workspace members because it is a Node package, but it still lives under `apps/`.
+- `packages/catdetector-model/`: shared uv package for the model, checkpoint lookup, and inference/evaluation preprocessing.
+- `apps/catdetector-trainer/`: uv package for training, evaluation, and checkpoint prediction.
+- `apps/catdetector-trainer/src/catdetector_trainer/datasets.py`: CSV-backed image dataset loader for fixed `train`, `val`, and `test` splits.
+- `apps/catdetector-trainer/src/catdetector_trainer/trainer.py`: training entry point, train transforms, dataloaders, logger, and checkpoint callback.
+- `apps/catdetector-trainer/src/catdetector_trainer/evaluate.py`: checkpoint evaluation script with per-cat precision/recall/F1 and a 4-class confusion matrix.
+- `apps/catdetector-trainer/src/catdetector_trainer/catdetector.py`: single-image inference script using the same preprocessing as evaluation.
+- `apps/catdetector-api/`: uv package for the FastAPI service.
+- `apps/catdetector-api/src/catdetector_api/main.py`: FastAPI app factory, health route, router registration, and static frontend serving.
+- `apps/catdetector-api/src/catdetector_api/routes.py`: HTTP route handlers, including `POST /api/predictions`.
+- `apps/catdetector-api/src/catdetector_api/dependencies.py`: FastAPI dependency wiring for the mockable predictor interface.
+- `apps/catdetector-api/src/catdetector_api/predictions.py`: prediction DTOs, labels, errors, and `CatPredictor` protocol.
+- `apps/catdetector-api/src/catdetector_api/inference.py`: concrete checkpoint-backed predictor using `catdetector-model`.
+- `apps/catdetector-web/`: Vite/Svelte phone web app. It is intentionally outside the uv workspace members because it is a Node package, but it still lives under `apps/`.
 - `data/`: local source images grouped by human-friendly label folders.
 - `dataset/`: generated local fixed split with `labels.csv`; ignored by git.
 - `checkpoints/` and `logs/`: local training artifacts; ignored by git.
@@ -43,15 +44,16 @@ $env:UV_CACHE_DIR = ".uv-cache"
 uv sync
 ```
 
-The root uv workspace installs both Python app packages:
+The root uv workspace installs the Python packages:
 
+- `catdetector-model`
 - `catdetector-trainer`
 - `catdetector-api`
 
 Install the web app dependencies from the committed npm lockfile:
 
 ```powershell
-npm.cmd --prefix apps/catdetector_web ci
+npm.cmd --prefix apps/catdetector-web ci
 ```
 
 ## Train
@@ -162,11 +164,12 @@ uv run catdetector-predict data/oka/IMG_20260201_161155.jpg
 Build the Svelte app before running FastAPI:
 
 ```powershell
-npm.cmd --prefix apps/catdetector_web run build
+npm.cmd --prefix apps/catdetector-web run build
 ```
 
-The build output is written to `apps/catdetector_web/dist/` and is ignored by git.
-FastAPI serves that build at `/` when it exists.
+The build output is written to `apps/catdetector-web/dist/` and is ignored by git.
+FastAPI serves that build at `/` when it exists. Set `CATDETECTOR_WEB_DIST` to
+override the static frontend path, which is what the Docker image does.
 
 Run the FastAPI app:
 
@@ -184,6 +187,18 @@ http://YOUR_PC_LAN_IP:8000/
 The web app uses a normal file input with `accept="image/*"` and
 `capture="environment"`, so phones can open the camera or photo picker and upload
 the selected image to FastAPI.
+
+For local web development without building the frontend first, run the API and
+Vite dev server in separate terminals:
+
+```powershell
+$env:UV_CACHE_DIR = ".uv-cache"
+uv run task api_dev
+uv run task web_dev
+```
+
+Vite serves the web app on its dev port and proxies `/api` to
+`http://localhost:8000`.
 
 The service exposes:
 
@@ -220,12 +235,28 @@ After code or dataset changes:
 $env:UV_CACHE_DIR = ".uv-cache"
 uv run task format
 uv run task check
-npm.cmd --prefix apps/catdetector_web run build
+npm.cmd --prefix apps/catdetector-web run format
+npm.cmd --prefix apps/catdetector-web run check
+npm.cmd --prefix apps/catdetector-web run test
+npm.cmd --prefix apps/catdetector-web run build
 ```
 
 `uv run task check` runs Ruff, ty, and the package-local unittest suites under:
 
-- `apps/catdetector_trainer/tests/catdetector_trainer_tests/`
-- `apps/catdetector_api/tests/catdetector_api_tests/`
+- `packages/catdetector-model/tests/catdetector_model_tests/`
+- `apps/catdetector-trainer/tests/catdetector_trainer_tests/`
+- `apps/catdetector-api/tests/catdetector_api_tests/`
+
+## Docker
+
+Build the production image after a checkpoint exists under `checkpoints/`:
+
+```powershell
+uv run task docker_build
+```
+
+The Docker image builds the Svelte frontend, installs only the API package and
+its model dependency, copies `checkpoints/`, and serves FastAPI plus the built
+frontend on port `8000`.
 
 Documentation-only changes do not require these tasks unless explicitly requested.

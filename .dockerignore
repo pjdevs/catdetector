@@ -1,0 +1,14 @@
+.git
+.ruff_cache
+.uv-cache
+.venv
+__pycache__
+*.pyc
+
+apps/catdetector-web/node_modules
+apps/catdetector-web/dist
+
+data
+dataset
+logs
+reports

@@ -9,6 +9,7 @@
 - When code changes are requested, avoid unrelated cleanup and preserve existing user changes in the working tree.
 - Never revert changes you did not make unless the user explicitly asks.
 - Keep the documentation synced with code and dataset changes. In this repo, that means updating `README.md` quickly after meaningful changes.
+- When committing implementation work, use Conventional Commits and keep commits scoped to one coherent step.
 
 ## Project Context
 
@@ -69,6 +70,24 @@ Important `uv` pitfall on this Windows workspace:
 - Prefer `.uv-cache` in the repository root for this project.
 
 Do not reintroduce `requirements.txt` unless the user asks. `pyproject.toml` and `uv.lock` are the source of truth for dependencies.
+
+## Frontend And Tooling
+
+The web app lives under `apps/catdetector-web`.
+
+After frontend code changes, run the npm checks from the repository root:
+
+```powershell
+npm.cmd --prefix apps/catdetector-web run format
+npm.cmd --prefix apps/catdetector-web run check
+npm.cmd --prefix apps/catdetector-web run test
+```
+
+After frontend build or Docker-related changes, also run:
+
+```powershell
+npm.cmd --prefix apps/catdetector-web run build
+```
 
 ## Training Notes
 
