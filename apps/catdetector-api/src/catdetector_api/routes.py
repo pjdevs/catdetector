@@ -2,9 +2,9 @@ import logging
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from wireup import Injected
 
-from catdetector_api.dependencies import get_cat_predictor
 from catdetector_api.observability import bind_request_id
 from catdetector_api.predictions import (
     CatPrediction,
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @router.post("/api/predictions")
 async def create_prediction(
     image: Annotated[UploadFile, File()],
-    predictor: Annotated[CatPredictor, Depends(get_cat_predictor)],
+    predictor: Injected[CatPredictor],
 ) -> CatPrediction:
     request_id = uuid.uuid4().hex
     with bind_request_id(request_id):

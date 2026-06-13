@@ -1,12 +1,14 @@
 import json
 import logging
 import logging.config
-import os
+import shlex
 from contextlib import contextmanager
 from contextvars import ContextVar
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any
+
+from catdetector_api.settings import ApiSettings, LogFormat
 
 REQUEST_ID = ContextVar("request_id", default="-")
 
@@ -37,67 +39,79 @@ _STANDARD_LOG_RECORD_KEYS = {
 }
 
 
+def log_payload(record: logging.LogRecord) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "time": datetime.fromtimestamp(record.created, UTC).isoformat(),
+        "level": record.levelname,
+        "logger": record.name,
+        "message": record.getMessage(),
+        "request_id": getattr(record, "request_id", REQUEST_ID.get()),
+    }
+
+    for key, value in record.__dict__.items():
+        if key not in _STANDARD_LOG_RECORD_KEYS and key not in payload:
+            payload[key] = value
+
+    return payload
+
+
 class JsonLogFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        payload: dict[str, Any] = {
-            "time": datetime.fromtimestamp(record.created, UTC).isoformat(),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "request_id": getattr(record, "request_id", REQUEST_ID.get()),
-        }
-
-        for key, value in record.__dict__.items():
-            if key not in _STANDARD_LOG_RECORD_KEYS and key not in payload:
-                payload[key] = value
-
+        payload = log_payload(record)
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
-
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
-def api_log_level() -> str:
-    return os.environ.get("CATDETECTOR_LOG_LEVEL", "INFO").upper()
+class TextLogFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = log_payload(record)
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return " ".join(
+            f"{key}={shlex.quote(str(value))}" for key, value in payload.items()
+        )
 
 
-def api_logging_dict_config() -> dict[str, Any]:
-    level = api_log_level()
+def api_logging_dict_config(settings: ApiSettings) -> dict[str, Any]:
+    formatter = (
+        "catdetector_api.observability.JsonLogFormatter"
+        if settings.log_format == LogFormat.JSON
+        else "catdetector_api.observability.TextLogFormatter"
+    )
     return {
         "version": 1,
         "disable_existing_loggers": False,
-        "formatters": {
-            "json": {"()": "catdetector_api.observability.JsonLogFormatter"}
-        },
+        "formatters": {"structured": {"()": formatter}},
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "formatter": "json",
+                "formatter": "structured",
                 "stream": "ext://sys.stdout",
             }
         },
         "loggers": {
             "_granian": {
                 "handlers": ["console"],
-                "level": level,
+                "level": settings.log_level,
                 "propagate": False,
             },
             "granian.access": {
                 "handlers": ["console"],
-                "level": level,
+                "level": settings.log_level,
                 "propagate": False,
             },
             "catdetector_api": {
                 "handlers": ["console"],
-                "level": level,
+                "level": settings.log_level,
                 "propagate": False,
             },
         },
     }
 
 
-def configure_api_logging() -> None:
-    logging.config.dictConfig(api_logging_dict_config())
+def configure_api_logging(settings: ApiSettings) -> None:
+    logging.config.dictConfig(api_logging_dict_config(settings))
 
 
 @contextmanager

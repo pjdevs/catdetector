@@ -9,8 +9,10 @@ dependencies = [
     "granian>=2.6.0",
     "httpx2>=2.4.0",
     "pillow>=12.0.0",
+    "pydantic-settings>=2.12.0",
     "python-multipart>=0.0.20",
     "torch>=2.12.0",
+    "wireup>=2.0.0",
 ]
 
 [project.scripts]

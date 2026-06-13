@@ -27,7 +27,8 @@ The model is a multi-label classifier:
 - `apps/catdetector-api/`: uv package for the FastAPI service.
 - `apps/catdetector-api/src/catdetector_api/main.py`: FastAPI app factory, health route, router registration, and static frontend serving.
 - `apps/catdetector-api/src/catdetector_api/routes.py`: HTTP route handlers, including `POST /api/predictions`.
-- `apps/catdetector-api/src/catdetector_api/dependencies.py`: FastAPI dependency wiring for the mockable predictor interface.
+- `apps/catdetector-api/src/catdetector_api/settings.py`: pydantic-settings model for API environment configuration.
+- `apps/catdetector-api/src/catdetector_api/dependencies.py`: Wireup container wiring for settings and the mockable predictor interface.
 - `apps/catdetector-api/src/catdetector_api/predictions.py`: prediction DTOs, labels, errors, and `CatPredictor` protocol.
 - `apps/catdetector-api/src/catdetector_api/inference.py`: concrete checkpoint-backed predictor using `catdetector-model`.
 - `apps/catdetector-web/`: Vite/Svelte phone web app. It is intentionally outside the uv workspace members because it is a Node package, but it still lives under `apps/`.
@@ -200,11 +201,21 @@ uv run task web_dev
 Vite serves the web app on its dev port and proxies `/api` to
 `http://localhost:8000`.
 
-Set `CATDETECTOR_API_HOST` or `CATDETECTOR_API_PORT` to override the API bind
-address or port.
+API configuration is read with pydantic-settings from environment variables:
 
-Granian, access logs, and application logs are written to stdout as JSON lines.
-Set `CATDETECTOR_LOG_LEVEL` to override the default `INFO` level. Prediction
+- `CATDETECTOR_API_HOST`: bind address, default `0.0.0.0`.
+- `CATDETECTOR_API_PORT`: bind port, default `8000`.
+- `CATDETECTOR_WEB_DIST`: static frontend build path, default `apps/catdetector-web/dist`.
+- `CATDETECTOR_CHECKPOINTS_DIR`: directory used to find the latest checkpoint, default `checkpoints`.
+- `CATDETECTOR_CHECKPOINT`: explicit checkpoint path, optional.
+- `CATDETECTOR_VICKIE_THRESHOLD`: Vickie detection threshold, default `0.50`.
+- `CATDETECTOR_OKA_THRESHOLD`: Oka detection threshold, default `0.50`.
+- `CATDETECTOR_DEVICE`: inference device override, optional; when unset the API uses CUDA if available, otherwise CPU.
+- `CATDETECTOR_LOG_LEVEL`: logging level, default `INFO`.
+- `CATDETECTOR_LOG_FORMAT`: `json` or `text`, default `json`.
+- `CATDETECTOR_LOG_ACCESS`: enable Granian access logs, default `true`.
+
+Granian, access logs, and application logs are written to stdout. Prediction
 logs include a per-request `request_id` plus route and inference fields such as
 image filename, upload size, checkpoint, device, label, probabilities, and
 thresholds.
@@ -228,13 +239,14 @@ curl -F "image=@data/oka/IMG_20260201_161155.jpg" http://localhost:8000/api/pred
 - `detected`: per-cat booleans after thresholds;
 - `thresholds`: the thresholds used for the prediction.
 
-The default API thresholds are:
+The default API thresholds, unless overridden with environment variables, are:
 
 - Vickie: `0.50`;
 - Oka: `0.50`.
 
-The API loads the latest `.ckpt` from `checkpoints/` lazily on first prediction.
-Invalid image uploads return HTTP 400. Missing checkpoints return HTTP 503.
+By default, the API loads the latest `.ckpt` from `checkpoints/` lazily on first
+prediction. Invalid image uploads return HTTP 400. Missing checkpoints return
+HTTP 503.
 
 ## Test / Check
 

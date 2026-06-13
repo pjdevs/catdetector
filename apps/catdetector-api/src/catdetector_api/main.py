@@ -1,19 +1,25 @@
-import os
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from wireup.integration.fastapi import setup
 
+from catdetector_api.dependencies import create_container
 from catdetector_api.observability import (
-    api_log_level,
     api_logging_dict_config,
     configure_api_logging,
 )
 from catdetector_api.routes import router
+from catdetector_api.settings import ApiSettings
 
 
-def create_app(web_dist_dir: Path | None = None) -> FastAPI:
+def create_app(
+    *,
+    settings: ApiSettings | None = None,
+    web_dist_dir: Path | None = None,
+) -> FastAPI:
+    api_settings = settings or ApiSettings()
     app = FastAPI(title="Cat Detector API")
     app.include_router(router)
 
@@ -21,16 +27,9 @@ def create_app(web_dist_dir: Path | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    mount_frontend(app, web_dist_dir or default_web_dist_dir())
+    mount_frontend(app, web_dist_dir or api_settings.web_dist_dir)
+    setup(create_container(api_settings), app)
     return app
-
-
-def default_web_dist_dir() -> Path:
-    if web_dist_dir := os.environ.get("CATDETECTOR_WEB_DIST"):
-        return Path(web_dist_dir)
-
-    repo_root = Path(__file__).resolve().parents[4]
-    return repo_root / "apps" / "catdetector-web" / "dist"
 
 
 def mount_frontend(app: FastAPI, web_dist_dir: Path) -> None:
@@ -54,12 +53,16 @@ def mount_frontend(app: FastAPI, web_dist_dir: Path) -> None:
 app = create_app()
 
 
+def default_web_dist_dir() -> Path:
+    return ApiSettings().web_dist_dir
+
+
 def api_host() -> str:
-    return os.environ.get("CATDETECTOR_API_HOST", "0.0.0.0")
+    return ApiSettings().api_host
 
 
 def api_port() -> int:
-    return int(os.environ.get("CATDETECTOR_API_PORT", "8000"))
+    return ApiSettings().api_port
 
 
 def main() -> None:
@@ -67,15 +70,16 @@ def main() -> None:
     from granian.constants import Interfaces
     from granian.log import LogLevels
 
-    configure_api_logging()
-    log_level = LogLevels(api_log_level().lower())
+    settings = ApiSettings()
+    configure_api_logging(settings)
+    log_level = LogLevels(settings.log_level.lower())
     Granian(
         "catdetector_api.main:app",
-        address=api_host(),
-        port=api_port(),
+        address=settings.api_host,
+        port=settings.api_port,
         interface=Interfaces.ASGI,
         log_enabled=True,
         log_level=log_level,
-        log_dictconfig=api_logging_dict_config(),
-        log_access=True,
+        log_dictconfig=api_logging_dict_config(settings),
+        log_access=settings.log_access,
     ).serve()
