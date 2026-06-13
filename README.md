@@ -178,7 +178,7 @@ $env:UV_CACHE_DIR = ".uv-cache"
 uv run task api
 ```
 
-It starts Uvicorn on `0.0.0.0:8000`. From a phone on the same network, open:
+It starts Granian on `0.0.0.0:8000`. From a phone on the same network, open:
 
 ```text
 http://YOUR_PC_LAN_IP:8000/
@@ -199,6 +199,9 @@ uv run task web_dev
 
 Vite serves the web app on its dev port and proxies `/api` to
 `http://localhost:8000`.
+
+Set `CATDETECTOR_API_HOST` or `CATDETECTOR_API_PORT` to override the API bind
+address or port.
 
 The service exposes:
 

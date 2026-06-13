@@ -49,7 +49,21 @@ def mount_frontend(app: FastAPI, web_dist_dir: Path) -> None:
 app = create_app()
 
 
-def main() -> None:
-    import uvicorn
+def api_host() -> str:
+    return os.environ.get("CATDETECTOR_API_HOST", "0.0.0.0")
 
-    uvicorn.run("catdetector_api.main:app", host="0.0.0.0", port=8000, reload=True)
+
+def api_port() -> int:
+    return int(os.environ.get("CATDETECTOR_API_PORT", "8000"))
+
+
+def main() -> None:
+    from granian import Granian
+    from granian.constants import Interfaces
+
+    Granian(
+        "catdetector_api.main:app",
+        address=api_host(),
+        port=api_port(),
+        interface=Interfaces.ASGI,
+    ).serve()
