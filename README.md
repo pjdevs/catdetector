@@ -203,6 +203,12 @@ Vite serves the web app on its dev port and proxies `/api` to
 Set `CATDETECTOR_API_HOST` or `CATDETECTOR_API_PORT` to override the API bind
 address or port.
 
+Granian, access logs, and application logs are written to stdout as JSON lines.
+Set `CATDETECTOR_LOG_LEVEL` to override the default `INFO` level. Prediction
+logs include a per-request `request_id` plus route and inference fields such as
+image filename, upload size, checkpoint, device, label, probabilities, and
+thresholds.
+
 The service exposes:
 
 ```powershell

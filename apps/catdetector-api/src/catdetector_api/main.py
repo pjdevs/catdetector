@@ -5,6 +5,11 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from catdetector_api.observability import (
+    api_log_level,
+    api_logging_dict_config,
+    configure_api_logging,
+)
 from catdetector_api.routes import router
 
 
@@ -60,10 +65,17 @@ def api_port() -> int:
 def main() -> None:
     from granian import Granian
     from granian.constants import Interfaces
+    from granian.log import LogLevels
 
+    configure_api_logging()
+    log_level = LogLevels(api_log_level().lower())
     Granian(
         "catdetector_api.main:app",
         address=api_host(),
         port=api_port(),
         interface=Interfaces.ASGI,
+        log_enabled=True,
+        log_level=log_level,
+        log_dictconfig=api_logging_dict_config(),
+        log_access=True,
     ).serve()

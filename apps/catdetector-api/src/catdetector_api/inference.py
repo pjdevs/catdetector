@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
@@ -21,6 +22,7 @@ from catdetector_api.predictions import (
 
 DEFAULT_VICKIE_THRESHOLD = 0.5
 DEFAULT_OKA_THRESHOLD = 0.5
+logger = logging.getLogger(__name__)
 
 
 def latest_checkpoint(checkpoints_dir: Path) -> Path:
@@ -64,9 +66,25 @@ class CheckpointCatPredictor:
             vickie=vickie_probability >= self.thresholds.vickie,
             oka=oka_probability >= self.thresholds.oka,
         )
+        label = prediction_label(vickie=detected.vickie, oka=detected.oka)
+        logger.info(
+            "Image prediction computed",
+            extra={
+                "event": "prediction.inference.completed",
+                "image_filename": filename,
+                "device": self.device,
+                "label": label,
+                "vickie_probability": vickie_probability,
+                "oka_probability": oka_probability,
+                "vickie_threshold": self.thresholds.vickie,
+                "oka_threshold": self.thresholds.oka,
+                "vickie_detected": detected.vickie,
+                "oka_detected": detected.oka,
+            },
+        )
 
         return CatPrediction(
-            label=prediction_label(vickie=detected.vickie, oka=detected.oka),
+            label=label,
             probabilities=CatProbabilities(
                 vickie=vickie_probability,
                 oka=oka_probability,
@@ -77,13 +95,48 @@ class CheckpointCatPredictor:
 
     def _decode_image(self, image: bytes) -> Image.Image:
         try:
-            return Image.open(BytesIO(image)).convert("RGB")
+            decoded = Image.open(BytesIO(image)).convert("RGB")
+            logger.info(
+                "Image upload decoded",
+                extra={
+                    "event": "prediction.image.decoded",
+                    "image_width": decoded.width,
+                    "image_height": decoded.height,
+                    "image_mode": decoded.mode,
+                    "image_size_bytes": len(image),
+                },
+            )
+            return decoded
         except (OSError, UnidentifiedImageError) as exc:
+            logger.warning(
+                "Image upload decode failed",
+                extra={
+                    "event": "prediction.image.invalid",
+                    "image_size_bytes": len(image),
+                    "error": str(exc),
+                },
+            )
             raise InvalidImageError("Invalid image upload.") from exc
 
     def _load_model(self) -> Any:
         if self._model is None:
             checkpoint = self.checkpoint or latest_checkpoint(self.checkpoints_dir)
+            logger.info(
+                "Loading cat detector checkpoint",
+                extra={
+                    "event": "prediction.model.load_started",
+                    "checkpoint": str(checkpoint),
+                    "device": self.device,
+                },
+            )
             self._model = self.model_loader(checkpoint).to(self.device)
             self._model.eval()
+            logger.info(
+                "Cat detector checkpoint loaded",
+                extra={
+                    "event": "prediction.model.load_completed",
+                    "checkpoint": str(checkpoint),
+                    "device": self.device,
+                },
+            )
         return self._model
