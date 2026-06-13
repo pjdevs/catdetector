@@ -4,6 +4,7 @@ from pathlib import Path
 import lightning
 import torch
 import torchvision.transforms as transforms
+from catdetector_model.transforms import eval_transform
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 
@@ -21,16 +22,6 @@ def train_transform():
                 brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
             ),
             transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-
-
-def eval_transform():
-    return transforms.Compose(
-        [
-            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]

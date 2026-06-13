@@ -4,8 +4,9 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from catdetector_trainer.models import CatPresenceModel
-from catdetector_trainer.trainer import eval_transform
+from catdetector_model.checkpoints import latest_checkpoint as model_latest_checkpoint
+from catdetector_model.models import CatPresenceModel
+from catdetector_model.transforms import eval_transform
 from PIL import Image, UnidentifiedImageError
 
 from catdetector_api.predictions import (
@@ -23,12 +24,10 @@ DEFAULT_OKA_THRESHOLD = 0.5
 
 
 def latest_checkpoint(checkpoints_dir: Path) -> Path:
-    checkpoints = sorted(
-        checkpoints_dir.glob("*.ckpt"), key=lambda path: path.stat().st_mtime
-    )
-    if not checkpoints:
-        raise PredictorUnavailableError(f"No .ckpt file found in {checkpoints_dir}")
-    return checkpoints[-1]
+    try:
+        return model_latest_checkpoint(checkpoints_dir)
+    except FileNotFoundError as exc:
+        raise PredictorUnavailableError(str(exc)) from exc
 
 
 class CheckpointCatPredictor:

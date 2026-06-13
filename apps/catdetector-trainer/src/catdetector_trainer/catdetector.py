@@ -2,19 +2,11 @@ import argparse
 from pathlib import Path
 
 import torch
+from catdetector_model.checkpoints import latest_checkpoint
+from catdetector_model.transforms import eval_transform
 from PIL import Image
 
 from catdetector_trainer.models import CatPresenceModel
-from catdetector_trainer.trainer import eval_transform
-
-
-def latest_checkpoint(checkpoints_dir: Path) -> Path:
-    checkpoints = sorted(
-        checkpoints_dir.glob("*.ckpt"), key=lambda path: path.stat().st_mtime
-    )
-    if not checkpoints:
-        raise FileNotFoundError(f"No .ckpt file found in {checkpoints_dir}")
-    return checkpoints[-1]
 
 
 def parse_args() -> argparse.Namespace:

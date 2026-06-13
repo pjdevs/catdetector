@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -20,8 +21,11 @@ def create_app(web_dist_dir: Path | None = None) -> FastAPI:
 
 
 def default_web_dist_dir() -> Path:
-    apps_dir = Path(__file__).resolve().parents[3]
-    return apps_dir / "catdetector_web" / "dist"
+    if web_dist_dir := os.environ.get("CATDETECTOR_WEB_DIST"):
+        return Path(web_dist_dir)
+
+    repo_root = Path(__file__).resolve().parents[4]
+    return repo_root / "apps" / "catdetector-web" / "dist"
 
 
 def mount_frontend(app: FastAPI, web_dist_dir: Path) -> None:

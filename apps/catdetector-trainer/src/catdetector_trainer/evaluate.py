@@ -3,25 +3,17 @@ import shutil
 from pathlib import Path
 
 import torch
+from catdetector_model.checkpoints import latest_checkpoint
+from catdetector_model.transforms import eval_transform
 from torch.utils.data import DataLoader
 
 from catdetector_trainer.datasets import CatDataset
 from catdetector_trainer.models import CatPresenceModel
-from catdetector_trainer.trainer import eval_transform
 
 
 CLASS_NAMES = ("none", "oka", "vickie", "both")
 CAT_NAMES = ("vickie", "oka")
 DEFAULT_THRESHOLDS = (0.5, 0.5)
-
-
-def latest_checkpoint(checkpoints_dir: Path) -> Path:
-    checkpoints = sorted(
-        checkpoints_dir.glob("*.ckpt"), key=lambda path: path.stat().st_mtime
-    )
-    if not checkpoints:
-        raise FileNotFoundError(f"No .ckpt file found in {checkpoints_dir}")
-    return checkpoints[-1]
 
 
 def class_index(label: torch.Tensor) -> int:

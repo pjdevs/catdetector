@@ -1,8 +1,9 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
-from catdetector_api.main import create_app
+from catdetector_api.main import create_app, default_web_dist_dir
 from fastapi.testclient import TestClient
 
 
@@ -31,6 +32,13 @@ class StaticFrontendTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_default_web_dist_dir_prefers_environment_override(self):
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            dist_dir = Path(temp_dir_name) / "web"
+
+            with patch.dict("os.environ", {"CATDETECTOR_WEB_DIST": str(dist_dir)}):
+                self.assertEqual(default_web_dist_dir(), dist_dir)
 
 
 if __name__ == "__main__":

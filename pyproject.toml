@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "catdetector-api",
+    "catdetector-model",
     "catdetector-trainer",
 ]
 
@@ -13,10 +14,15 @@ dependencies = [
 dev = ["ruff>=0.15.16", "taskipy>=1.14.1", "ty>=0.0.44"]
 
 [tool.uv.workspace]
-members = ["apps/catdetector_api", "apps/catdetector_trainer"]
+members = [
+    "apps/catdetector-api",
+    "apps/catdetector-trainer",
+    "packages/catdetector-model",
+]
 
 [tool.uv.sources]
 catdetector-api = { workspace = true }
+catdetector-model = { workspace = true }
 catdetector-trainer = { workspace = true }
 torch = [{ index = "pytorch-cu130" }]
 torchvision = [{ index = "pytorch-cu130" }]
@@ -31,10 +37,17 @@ train = "catdetector-train"
 evaluate = "catdetector-evaluate"
 predict = "catdetector-predict"
 api = "catdetector-api"
-test_trainer = "python -m unittest discover -s apps/catdetector_trainer/tests"
-test_api = "python -m unittest discover -s apps/catdetector_api/tests"
-test = "task test_trainer && task test_api"
+test_model = "python -m unittest discover -s packages/catdetector-model/tests"
+test_api = "python -m unittest discover -s apps/catdetector-api/tests"
+test_trainer = "python -m unittest discover -s apps/catdetector-trainer/tests"
+test = "task test_model && task test_trainer && task test_api"
 format = "ruff format ."
 check_ruff = "ruff check ."
 check_ty = "ty check ."
 check = "task check_ruff && task check_ty && task test"
+api_dev = "catdetector-api"
+web_dev = "npm.cmd --prefix apps/catdetector-web run dev"
+web_build = "npm.cmd --prefix apps/catdetector-web run build"
+web_preview = "npm.cmd --prefix apps/catdetector-web run preview"
+web_test = "npm.cmd --prefix apps/catdetector-web run test"
+web_check = "npm.cmd --prefix apps/catdetector-web run check"
