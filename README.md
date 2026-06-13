@@ -256,7 +256,14 @@ uv run task docker_build
 ```
 
 The Docker image builds the Svelte frontend, installs only the API package and
-its model dependency, copies `checkpoints/`, and serves FastAPI plus the built
-frontend on port `8000`.
+its model dependency, installs CUDA PyTorch wheels by default for GPU inference,
+copies `checkpoints/`, and serves FastAPI plus the built frontend on port `8000`.
+The API still falls back to CPU at runtime when CUDA is unavailable.
+
+To build a smaller CPU-only fallback image:
+
+```powershell
+uv run task docker_build_cpu
+```
 
 Documentation-only changes do not require these tasks unless explicitly requested.

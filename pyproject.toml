@@ -24,8 +24,8 @@ members = [
 catdetector-api = { workspace = true }
 catdetector-model = { workspace = true }
 catdetector-trainer = { workspace = true }
-torch = [{ index = "pytorch-cu130" }]
-torchvision = [{ index = "pytorch-cu130" }]
+torch = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
+torchvision = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32'" }]
 
 [[tool.uv.index]]
 name = "pytorch-cu130"
@@ -54,3 +54,4 @@ web_preview = "npm.cmd --prefix apps/catdetector-web run preview"
 web_test = "npm.cmd --prefix apps/catdetector-web run test"
 web_check = "npm.cmd --prefix apps/catdetector-web run check"
 docker_build = "docker build -t catdetector ."
+docker_build_cpu = "docker build --build-arg UV_TORCH_BACKEND=cpu -t catdetector:cpu ."

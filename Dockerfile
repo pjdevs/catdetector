@@ -11,17 +11,26 @@ RUN npm run build
 FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS runtime
 
 WORKDIR /app
+ARG UV_TORCH_BACKEND=cu130
 
 ENV CATDETECTOR_WEB_DIST=/app/web
 ENV PYTHONUNBUFFERED=1
 ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 ENV PATH="/app/.venv/bin:${PATH}"
 
-COPY pyproject.toml uv.lock .python-version ./
 COPY apps/catdetector-api/ apps/catdetector-api/
-COPY apps/catdetector-trainer/pyproject.toml apps/catdetector-trainer/pyproject.toml
 COPY packages/catdetector-model/ packages/catdetector-model/
-RUN uv sync --locked --no-dev --package catdetector-api
+RUN uv venv /app/.venv \
+    && uv pip install \
+        --python /app/.venv/bin/python \
+        --torch-backend "${UV_TORCH_BACKEND}" \
+        "torch>=2.12.0" \
+        "torchvision>=0.27.0" \
+    && uv pip install \
+        --python /app/.venv/bin/python \
+        --no-sources \
+        ./packages/catdetector-model \
+        ./apps/catdetector-api
 
 COPY --from=web-build /app/apps/catdetector-web/dist/ /app/web/
 COPY checkpoints/ /app/checkpoints/
